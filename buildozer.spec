@@ -7,7 +7,7 @@ title = CBT FRENCH APP
 package.name = cbt_french_app
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = fr.anthony.charretier
+package.domain = fr.cbt.app
 
 # (str) Source code where the main.py live
 source.dir = .
