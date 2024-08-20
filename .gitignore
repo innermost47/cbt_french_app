@@ -1,2 +1,4 @@
 env
 sessions.json
+bin
+.buildozer

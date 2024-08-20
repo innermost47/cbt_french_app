@@ -55,7 +55,7 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
 class SessionListScreen(Screen):
     def __init__(self, session_manager, **kwargs):
         super(SessionListScreen, self).__init__(**kwargs)
-        self.session_manager = session_manager
+        self.session_manager: SessionManager = session_manager
         self.layout = BoxLayout(orientation="vertical")
         self.add_widget(self.layout)
         self.update_sessions_list()
@@ -102,8 +102,11 @@ class SessionListScreen(Screen):
         self.layout.add_widget(back_button)
 
     def show_session_details(self, session):
-        self.manager.get_screen("session_detail").show_session(session)
-        self.manager.current = "session_detail"
+        try:
+            self.manager.get_screen("session_detail").show_session(session)
+            self.manager.current = "session_detail"
+        except KeyError as e:
+            print(f"Erreur : écran non trouvé - {e}")
 
     def go_back(self, instance):
         self.manager.current = "menu"
@@ -119,17 +122,25 @@ class SessionListScreen(Screen):
 class SessionManager:
     def __init__(self, filename):
         self.filename = filename
+        self.storage_path = App.get_running_app().user_data_dir
+        self.file_path = os.path.join(self.storage_path, filename)
         self.sessions = self.load_sessions()
 
     def load_sessions(self):
-        if os.path.exists(self.filename):
-            with open(self.filename, "r") as f:
-                return json.load(f).get("sessions", [])
+        try:
+            if os.path.exists(self.file_path):
+                with open(self.file_path, "r") as f:
+                    return json.load(f).get("sessions", [])
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Erreur lors du chargement des sessions : {e}")
         return []
 
     def save_sessions(self):
-        with open(self.filename, "w") as f:
-            json.dump({"sessions": self.sessions}, f)
+        try:
+            with open(self.file_path, "w") as f:
+                json.dump({"sessions": self.sessions}, f)
+        except IOError as e:
+            print(f"Erreur lors de la sauvegarde des sessions : {e}")
 
     def add_session(self, title, date, entries):
         self.sessions.append({"title": title, "date": date, "entries": entries})
@@ -179,12 +190,15 @@ class TitleSessionScreen(Screen):
         self.add_widget(self.layout)
 
     def start_session(self, instance):
-        title = self.title_input.text.strip()
-        if title:
-            self.manager.get_screen("new_session").start_new_session(title)
-            self.manager.current = "new_session"
-        else:
-            self.title_input.hint_text = "Le titre ne peut pas être vide"
+        try:
+            title = self.title_input.text.strip()
+            if title:
+                self.manager.get_screen("new_session").start_new_session(title)
+                self.manager.current = "new_session"
+            else:
+                self.title_input.hint_text = "Le titre ne peut pas être vide"
+        except Exception as e:
+            print(f"Erreur lors du démarrage de la session : {e}")
 
 
 class NewSessionScreen(Screen):
@@ -245,10 +259,13 @@ class NewSessionScreen(Screen):
         ]
 
     def start_new_session(self, title):
-        self.title = title
-        self.current_question = 0
-        self.entries = []
-        self.update_ui()
+        try:
+            self.title = title
+            self.current_question = 0
+            self.entries = []
+            self.update_ui()
+        except Exception as e:
+            print(f"Erreur lors de la création d'une nouvelle session : {e}")
 
     def update_ui(self):
         self.question_label.text = self.questions[self.current_question]
@@ -281,6 +298,8 @@ class NewSessionScreen(Screen):
     def save_session(self):
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         self.session_manager.add_session(self.title, date, self.entries)
+        session_list_screen = self.manager.get_screen("session_list")
+        session_list_screen.update_sessions_list()
         self.manager.current = "menu"
 
 
