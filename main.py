@@ -13,6 +13,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 from kivy.metrics import dp
 from kivy.clock import Clock
+from kivy.storage.jsonstore import JsonStore
 import json
 import os
 import datetime
@@ -123,24 +124,16 @@ class SessionManager:
     def __init__(self, filename):
         self.filename = filename
         self.storage_path = App.get_running_app().user_data_dir
-        self.file_path = os.path.join(self.storage_path, filename)
+        self.store = JsonStore(os.path.join(self.storage_path, filename))
         self.sessions = self.load_sessions()
 
     def load_sessions(self):
-        try:
-            if os.path.exists(self.file_path):
-                with open(self.file_path, "r") as f:
-                    return json.load(f).get("sessions", [])
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"Erreur lors du chargement des sessions : {e}")
+        if self.store.exists("sessions"):
+            return self.store.get("sessions").get("sessions", [])
         return []
 
     def save_sessions(self):
-        try:
-            with open(self.file_path, "w") as f:
-                json.dump({"sessions": self.sessions}, f)
-        except IOError as e:
-            print(f"Erreur lors de la sauvegarde des sessions : {e}")
+        self.store.put("sessions", sessions=self.sessions)
 
     def add_session(self, title, date, entries):
         self.sessions.append({"title": title, "date": date, "entries": entries})
@@ -398,17 +391,21 @@ class SessionDetailScreen(Screen):
 
 class TCCApp(App):
     def build(self):
-        session_manager = SessionManager(SESSIONS_FILE)
-
-        sm = ScreenManager()
-        sm.add_widget(MenuScreen(session_manager, name="menu"))
-        sm.add_widget(TitleSessionScreen(session_manager, name="title_session"))
-        sm.add_widget(NewSessionScreen(session_manager, name="new_session"))
-        sm.add_widget(SessionListScreen(session_manager, name="session_list"))
-        sm.add_widget(SessionDetailScreen(name="session_detail"))
-
-        return sm
+        try:
+            session_manager = SessionManager(SESSIONS_FILE)
+            sm = ScreenManager()
+            sm.add_widget(MenuScreen(session_manager, name="menu"))
+            sm.add_widget(TitleSessionScreen(session_manager, name="title_session"))
+            sm.add_widget(NewSessionScreen(session_manager, name="new_session"))
+            sm.add_widget(SessionListScreen(session_manager, name="session_list"))
+            sm.add_widget(SessionDetailScreen(name="session_detail"))
+            return sm
+        except Exception as e:
+            print(f"An error occured during app build: {e}")
 
 
 if __name__ == "__main__":
-    TCCApp().run()
+    try:
+        TCCApp().run()
+    except Exception as e:
+        print(f"An error occured at runtime: {e}")
