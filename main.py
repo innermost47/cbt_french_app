@@ -174,7 +174,7 @@ class TitleSessionScreen(Screen):
         self.layout = BoxLayout(orientation="vertical")
 
         self.title_input = TextInput(
-            hint_text="Donner un titre à la session", size_hint_y=0.2
+            hint_text="Donner un titre à la session", size_hint_y=0.2, input_type="text", keyboard_suggestions=True
         )
         self.start_button = Button(text="Commencer", on_press=self.start_session)
 
@@ -211,7 +211,7 @@ class NewSessionScreen(Screen):
             halign="left",
             valign="middle",
         )
-        self.response_input = TextInput(hint_text="Votre réponse ici", size_hint_y=0.4)
+        self.response_input = TextInput(hint_text="Votre réponse ici", size_hint_y=0.4, input_type="text", keyboard_suggestions=True)
 
         self.button_layout = BoxLayout(size_hint_y=0.2)
         self.prev_button = Button(
