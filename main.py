@@ -14,7 +14,6 @@ from kivy.uix.widget import Widget
 from kivy.metrics import dp
 from kivy.clock import Clock
 from kivy.storage.jsonstore import JsonStore
-import json
 import os
 import datetime
 
