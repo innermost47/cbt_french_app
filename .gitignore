@@ -3,3 +3,4 @@ sessions.json
 bin
 .buildozer
 .kivy
+src/__pycache__
