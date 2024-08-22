@@ -73,6 +73,7 @@ class NewSessionScreen(Screen):
             self.title = title
             self.current_question = 0
             self.entries = [{}] * len(self.questions)
+            self.response_input.text = ""
             self.update_ui()
         except Exception as e:
             print(f"Error creating new session: {e}")
@@ -85,32 +86,68 @@ class NewSessionScreen(Screen):
         self.prev_button.disabled = self.current_question == 0
 
     def next_question(self, instance):
-        self.save_current_response()
-
-        if self.current_question < len(self.questions) - 1:
-            self.current_question += 1
-            self.update_ui()
-        else:
-            self.save_session()
+        try:
+            self.save_current_response()
+            if self.current_question < len(self.questions) - 1:
+                self.current_question += 1
+                self.update_ui()
+            else:
+                self.save_session()
+        except Exception as e:
+            print(f"An error occured while trying to navigate to next question: {e}")
 
     def prev_question(self, instance):
-        self.save_current_response()
-
-        if self.current_question > 0:
-            self.current_question -= 1
-            self.update_ui()
+        try:
+            self.save_current_response()
+            if self.current_question > 0:
+                self.current_question -= 1
+                self.update_ui()
+        except Exception as e:
+            print(
+                f"An error occured while trying to navigate to previous question: {e}"
+            )
 
     def save_current_response(self):
-        response = self.response_input.text.strip()
-        self.entries[self.current_question] = {
-            "question": self.questions[self.current_question],
-            "response": response,
-        }
+        try:
+            response = self.response_input.text.strip()
+            self.entries[self.current_question] = {
+                "question": self.questions[self.current_question],
+                "response": response,
+            }
+        except Exception as e:
+            print(f"An error occured while trying to save current response: {e}")
 
     def save_session(self):
-        date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        valid_entries = [entry for entry in self.entries if entry.get("response")]
-        self.session_manager.add_session(self.title, date, valid_entries)
-        session_list_screen = self.manager.get_screen("session_list")
-        session_list_screen.update_sessions_list()
-        self.manager.current = "menu"
+        try:
+            date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            valid_entries = [entry for entry in self.entries if entry.get("response")]
+            session_exists = False
+            for session in self.session_manager.sessions:
+                if session["title"] == self.title:
+                    session["date"] = date
+                    session["entries"] = valid_entries
+                    session_exists = True
+                    break
+            if not session_exists:
+                self.session_manager.add_session(self.title, date, valid_entries)
+            self.session_manager.save_sessions()
+            session_list_screen = self.manager.get_screen("session_list")
+            session_list_screen.update_sessions_list()
+            self.manager.current = "menu"
+        except Exception as e:
+            print(f"An error occured while trying to save session: {e}")
+
+    def load_session(self, session):
+        try:
+            self.title = session["title"]
+            self.current_question = 0
+            self.entries = [{}] * len(self.questions)
+            for entry in session["entries"]:
+                for i, question in enumerate(self.questions):
+                    if entry["question"] == question:
+                        self.entries[i] = entry
+                        break
+
+            self.update_ui()
+        except Exception as e:
+            print(f"Error loading session: {e}")

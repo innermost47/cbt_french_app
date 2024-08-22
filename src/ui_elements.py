@@ -3,6 +3,8 @@ from kivy.uix.label import Label
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.properties import BooleanProperty
 from kivy.core.text import LabelBase
+from kivy.uix.behaviors import ButtonBehavior
+from kivy.uix.image import Image
 
 current_dir = os.path.dirname(__file__)
 project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
@@ -36,3 +38,7 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
         if is_selected:
             session = rv.data[index]["session"]
             rv.parent.parent.show_session_details(session)
+
+
+class ImageButton(ButtonBehavior, Image):
+    pass

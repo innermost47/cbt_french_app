@@ -33,6 +33,8 @@ class TitleSessionScreen(Screen):
             if title:
                 self.manager.get_screen("new_session").start_new_session(title)
                 self.manager.current = "new_session"
+                self.title_input.text = ""
+                self.title_input.hint_text = "Donner un titre à la session"
             else:
                 self.title_input.hint_text = "Le titre ne peut pas être vide"
         except Exception as e:
