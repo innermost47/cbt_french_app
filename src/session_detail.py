@@ -88,7 +88,7 @@ class SessionDetailScreen(Screen):
         self.layout.add_widget(scroll_view)
 
         back_button = Button(
-            text="Retour", on_press=self.go_back, size_hint_y=None, height=40
+            text="Retour", on_press=self.go_back, size_hint=(1, 0.1)
         )
         self.layout.add_widget(back_button)
 

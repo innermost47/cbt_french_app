@@ -14,6 +14,7 @@ class TitleSessionScreen(Screen):
             hint_text="Donner un titre à la session",
             size_hint_y=0.2,
             input_type="text",
+            write_tab=False,
             keyboard_suggestions=True,
         )
         self.start_button = Button(

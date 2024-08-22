@@ -11,7 +11,26 @@ class NewSessionScreen(Screen):
         super(NewSessionScreen, self).__init__(**kwargs)
         self.session_manager = session_manager
         self.current_question = 0
-        self.entries = []
+        self.questions = [
+            "Décrivez les faits de la situation de manière neutre, sans jugement ni interprétation.",
+            "Quels sont les sentiments ou les émotions que vous ressentez actuellement dans cette situation ?",
+            "Quelles sont les pensées qui vous traversent l'esprit à propos de cette situation ?",
+            "Est-ce que cette pensée est complètement exacte ? Pouvez-vous identifier des faits ou des éléments qui contredisent cette pensée ?",
+            "Les informations sur lesquelles vous basez cette pensée sont-elles fiables et précises ?",
+            "Est-ce que vous confondez des probabilités avec des certitudes ? Si oui, pourquoi ?",
+            "Est-ce que vous vous sentez contraint d'agir de cette manière ? Si oui, pourquoi ?",
+            "Pouvez-vous imaginer d'autres explications ou hypothèses pour cette situation ?",
+            "Comment pensez-vous que votre entourage (famille, amis, personnalités publiques) réagirait à cette situation ?",
+            "Quel pourrait être votre point de vue idéal sur cette situation dans 5 ans ?",
+            "Que conseilleriez-vous à votre meilleur ami s'il était dans cette situation ?",
+            "Comment quelqu'un d'autre pourrait-il percevoir cette situation ?",
+            "Si cette pensée ou croyance était vraie, quelles seraient les conséquences concrètes pour vous à court terme, moyen terme et long terme ?",
+            "Cette situation est-elle vraiment aussi catastrophique que vous le percevez ? Quels sont les éléments qui vous font penser cela ?",
+            "Malgré cette situation ou cette croyance, croyez-vous qu'il soit encore possible pour vous de trouver du bonheur ? Qu'est-ce qui pourrait vous en empêcher ou, au contraire, vous y aider ?",
+            "Cette situation compromet-elle réellement votre avenir ?",
+            "Quels moyens pourriez-vous utiliser pour vous adapter à cette situation ? Comment feriez-vous face aux défis qu'elle présente ?",
+        ]
+        self.entries = [{}] * len(self.questions)
 
         self.layout = BoxLayout(orientation="vertical")
         self.title = ""
@@ -27,6 +46,7 @@ class NewSessionScreen(Screen):
             hint_text="Votre réponse ici",
             size_hint_y=0.4,
             input_type="text",
+            write_tab=False,
             keyboard_suggestions=True,
         )
 
@@ -48,66 +68,49 @@ class NewSessionScreen(Screen):
 
         self.add_widget(self.layout)
 
-        self.questions = [
-            "Décrivez les faits de la situation de manière neutre, sans jugement ni interprétation.",
-            "Quels sont les sentiments ou les émotions que vous ressentez actuellement dans cette situation ?",
-            "Quelles sont les pensées qui vous traversent l'esprit à propos de cette situation ?",
-            "Est-ce que cette pensée est complètement exacte ? Pouvez-vous identifier des faits ou des éléments qui contredisent cette pensée ?",
-            "Les informations sur lesquelles vous basez cette pensée sont-elles fiables et précises ?",
-            "Est-ce que vous confondez des probabilités avec des certitudes ? Si oui, pourquoi ?",
-            "Est-ce que vous vous sentez contraint d'agir de cette manière ? Si oui, pourquoi ?",
-            "Pouvez-vous imaginer d'autres explications ou hypothèses pour cette situation ?",
-            "Comment pensez-vous que votre entourage (famille, amis, personnalités publiques) réagirait à cette situation ?",
-            "Quel pourrait être votre point de vue idéal sur cette situation dans 5 ans ?",
-            "Que conseilleriez-vous à votre meilleur ami s'il était dans cette situation ?",
-            "Comment quelqu'un d'autre pourrait-il percevoir cette situation ?",
-            "Si cette pensée ou croyance était vraie, quelles seraient les conséquences concrètes pour vous à court terme, moyen terme et long terme ?",
-            "Cette situation est-elle vraiment aussi catastrophique que vous le percevez ? Quels sont les éléments qui vous font penser cela ?",
-            "Malgré cette situation ou cette croyance, croyez-vous qu'il soit encore possible pour vous de trouver du bonheur ? Qu'est-ce qui pourrait vous en empêcher ou, au contraire, vous y aider ?",
-            "Cette situation compromet-elle réellement votre avenir ?",
-            "Quels moyens pourriez-vous utiliser pour vous adapter à cette situation ? Comment feriez-vous face aux défis qu'elle présente ?",
-        ]
-
     def start_new_session(self, title):
         try:
             self.title = title
             self.current_question = 0
-            self.entries = []
+            self.entries = [{}] * len(self.questions)
             self.update_ui()
         except Exception as e:
             print(f"Error creating new session: {e}")
 
     def update_ui(self):
         self.question_label.text = self.questions[self.current_question]
-        self.response_input.text = ""
+        current_entry = self.entries[self.current_question]
+        self.response_input.text = current_entry.get("response", "")
+
         self.prev_button.disabled = self.current_question == 0
 
     def next_question(self, instance):
-        response = self.response_input.text.strip()
-        if response:
-            self.entries.append(
-                {
-                    "question": self.questions[self.current_question],
-                    "response": response,
-                }
-            )
+        self.save_current_response()
 
-        self.current_question += 1
-
-        if self.current_question < len(self.questions):
+        if self.current_question < len(self.questions) - 1:
+            self.current_question += 1
             self.update_ui()
         else:
             self.save_session()
 
     def prev_question(self, instance):
+        self.save_current_response()
+
         if self.current_question > 0:
             self.current_question -= 1
-            self.entries.pop()
             self.update_ui()
+
+    def save_current_response(self):
+        response = self.response_input.text.strip()
+        self.entries[self.current_question] = {
+            "question": self.questions[self.current_question],
+            "response": response,
+        }
 
     def save_session(self):
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        self.session_manager.add_session(self.title, date, self.entries)
+        valid_entries = [entry for entry in self.entries if entry.get("response")]
+        self.session_manager.add_session(self.title, date, valid_entries)
         session_list_screen = self.manager.get_screen("session_list")
         session_list_screen.update_sessions_list()
         self.manager.current = "menu"
