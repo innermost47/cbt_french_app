@@ -100,4 +100,4 @@ Cette fonctionnalité hors ligne est idéale pour ceux qui souhaitent utiliser l
 
 ## Support
 
-Pour toute question ou demande d'assistance, veuillez contacter [anthony.charretier@gmail.com].
+Pour toute question ou demande d'assistance, veuillez nous [contacter](mailto:anthony.charretier@gmail.com).
