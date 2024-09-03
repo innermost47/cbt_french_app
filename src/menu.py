@@ -1,8 +1,6 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen
-from .ui_elements import ImageButton
-from kivy.metrics import dp
 
 
 class MenuScreen(Screen):
@@ -17,9 +15,13 @@ class MenuScreen(Screen):
         view_sessions_button = Button(
             text="Voir les Sessions", on_press=self.view_sessions
         )
+        manage_contacts_button = Button(
+            text="Gérer les Contacts", on_press=self.manage_contacts
+        )
 
         layout.add_widget(new_session_button)
         layout.add_widget(view_sessions_button)
+        layout.add_widget(manage_contacts_button)
         self.add_widget(layout)
 
     def start_new_session(self, instance):
@@ -27,3 +29,6 @@ class MenuScreen(Screen):
 
     def view_sessions(self, instance):
         self.manager.current = "session_list"
+
+    def manage_contacts(self, instance):
+        self.manager.current = "contact_list"

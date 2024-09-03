@@ -5,6 +5,8 @@ from kivy.properties import BooleanProperty
 from kivy.core.text import LabelBase
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.image import Image
+from kivy.uix.textinput import TextInput
+import re
 
 current_dir = os.path.dirname(__file__)
 project_root = os.path.abspath(os.path.join(current_dir, os.pardir))
@@ -42,3 +44,10 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
 
 class ImageButton(ButtonBehavior, Image):
     pass
+
+
+class EmailTextInput(TextInput):
+    def insert_text(self, substring, from_undo=False):
+        pattern = r"[a-zA-Z0-9@._-]"
+        filtered = "".join(re.findall(pattern, substring))
+        return super(EmailTextInput, self).insert_text(filtered, from_undo=from_undo)

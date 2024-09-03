@@ -7,9 +7,8 @@ from src import (
     MenuScreen,
     SessionManager,
     SessionListScreen,
-    SelectableLabel,
-    LabelBase,
-    font_dir,
+    ContactListScreen,
+    ContactManager,
 )
 
 
@@ -17,11 +16,15 @@ class TCCApp(App):
     def build(self):
         try:
             session_manager = SessionManager("sessions.json")
+            contact_manager = ContactManager()
             sm = ScreenManager()
             sm.add_widget(MenuScreen(session_manager, name="menu"))
             sm.add_widget(TitleSessionScreen(session_manager, name="title_session"))
             sm.add_widget(NewSessionScreen(session_manager, name="new_session"))
-            sm.add_widget(SessionListScreen(session_manager, name="session_list"))
+            sm.add_widget(
+                SessionListScreen(session_manager, contact_manager, name="session_list")
+            )
+            sm.add_widget(ContactListScreen(contact_manager, name="contact_list"))
             sm.add_widget(SessionDetailScreen(name="session_detail"))
             return sm
         except Exception as e:

@@ -7,13 +7,17 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
+from kivy.uix.checkbox import CheckBox
+from jnius import autoclass, cast
+from kivy.utils import platform
 from .ui_elements import ImageButton
 
 
 class SessionListScreen(Screen):
-    def __init__(self, session_manager, **kwargs):
+    def __init__(self, session_manager, contact_manager, **kwargs):
         super(SessionListScreen, self).__init__(**kwargs)
         self.session_manager = session_manager
+        self.contact_manager = contact_manager
         self.layout = BoxLayout(orientation="vertical")
         self.add_widget(self.layout)
         self.update_sessions_list()
@@ -51,22 +55,31 @@ class SessionListScreen(Screen):
 
             edit_btn = ImageButton(
                 source=("assets/images/update.png"),
-                size_hint=(0.5, 1),
+                size_hint=(1 / 3, 1),
             )
             edit_btn.bind(on_press=lambda x, s=session: self.edit_session(s))
             space_middle = Widget(size_hint_x=None, width=dp(10))
+            space_between = Widget(size_hint_x=None, width=dp(10))
             space_right = Widget(size_hint_x=None, width=dp(10))
             delete_btn = ImageButton(
                 source=("assets/images/delete.png"),
-                size_hint=(0.5, 1),
+                size_hint=(1 / 3, 1),
             )
             delete_btn.bind(
                 on_press=lambda x, s=session: self.confirm_delete_session(s)
             )
 
+            share_btn = ImageButton(
+                source=("assets/images/share.png"),
+                size_hint=(1 / 3, 1),
+            )
+            share_btn.bind(on_press=lambda x, s=session: self.share_session(s))
+
             actions_layout.add_widget(edit_btn)
             actions_layout.add_widget(space_middle)
             actions_layout.add_widget(delete_btn)
+            actions_layout.add_widget(space_between)
+            actions_layout.add_widget(share_btn)
             actions_layout.add_widget(space_right)
 
             session_layout.add_widget(actions_layout)
@@ -129,3 +142,181 @@ class SessionListScreen(Screen):
         self.session_manager.delete_session(session["id"])
         self.dismiss_popup()
         self.update_sessions_list()
+
+    def share_session(self, session):
+        self.selected_session = session
+        self.show_contact_selection_popup()
+
+    def show_contact_selection_popup(self):
+        contacts = self.contact_manager.get_contacts()
+        contact_layout = GridLayout(cols=2, size_hint_y=None, spacing=10)
+        contact_layout.bind(minimum_height=contact_layout.setter("height"))
+
+        self.selected_contacts = []
+
+        for contact in contacts:
+            contact_label = Label(
+                text=f"{contact['name']} {contact['surname']} ({contact['role']})",
+                size_hint=(0.7, None),
+                height=dp(40),
+            )
+            checkbox = CheckBox(size_hint=(0.3, None), height=dp(40))
+            checkbox.bind(
+                active=lambda checkbox, active, c=contact: self.toggle_contact_selection(
+                    c, active
+                )
+            )
+            contact_layout.add_widget(contact_label)
+            contact_layout.add_widget(checkbox)
+
+        scroll_view = ScrollView(size_hint=(1, 1))
+        scroll_view.add_widget(contact_layout)
+
+        popup_layout = BoxLayout(orientation="vertical", padding=10, spacing=10)
+        popup_layout.add_widget(scroll_view)
+
+        buttons_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=10)
+        confirm_btn = Button(text="Confirmer", on_press=self.show_confirmation_popup)
+        cancel_btn = Button(text="Annuler", on_press=lambda x: self.dismiss_popup())
+
+        buttons_layout.add_widget(confirm_btn)
+        buttons_layout.add_widget(cancel_btn)
+
+        popup_layout.add_widget(buttons_layout)
+
+        self.popup = Popup(
+            title="Sélectionnez les contacts pour partager",
+            content=popup_layout,
+            size_hint=(0.8, 0.8),
+        )
+        self.popup.open()
+
+    def toggle_contact_selection(self, contact, active):
+        if active:
+            self.selected_contacts.append(contact)
+        else:
+            self.selected_contacts.remove(contact)
+
+    def show_confirmation_popup(self, instance):
+        if not self.selected_contacts:
+            return
+
+        contact_names = "\n".join(
+            [
+                f"{c['name']} {c['surname']} ({c['email']})"
+                for c in self.selected_contacts
+            ]
+        )
+
+        confirmation_layout = BoxLayout(orientation="vertical", padding=10, spacing=10)
+        message = Label(
+            text=f"Vous allez partager cette session avec :\n{contact_names}",
+            text_size=(250, None),
+            halign="center",
+            valign="middle",
+        )
+        confirmation_layout.add_widget(message)
+
+        buttons_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=10)
+        send_btn = Button(text="Envoyer", on_press=self.send_emails)
+        cancel_btn = Button(text="Annuler", on_press=lambda x: self.dismiss_popup())
+
+        buttons_layout.add_widget(send_btn)
+        buttons_layout.add_widget(cancel_btn)
+
+        confirmation_layout.add_widget(buttons_layout)
+
+        self.popup.content = confirmation_layout
+
+    def send_emails(self, instance):
+        errors = []
+        for contact in self.selected_contacts:
+            success = self.send_email(contact["email"], self.selected_session)
+            if not success:
+                errors.append(contact["email"])
+
+        if errors:
+            self.show_error_popup(
+                f"Les emails suivants n'ont pas pu être envoyés : {', '.join(errors)}"
+            )
+        else:
+            self.show_success_popup("Tous les emails ont été envoyés avec succès.")
+
+    def send_email(self, email, session):
+        if platform == "android":
+            try:
+                Intent = autoclass("android.content.Intent")
+                Uri = autoclass("android.net.Uri")
+
+                intent = Intent(Intent.ACTION_SEND)
+                intent.setType("message/rfc822")
+
+                intent.putExtra(Intent.EXTRA_EMAIL, [email])
+
+                intent.putExtra(Intent.EXTRA_SUBJECT, f"Session '{session['title']}'")
+
+                body = f"Voici les détails de ma session :\n\n{session['title']}\n{session['date']}\n\n"
+                for entry in session["entries"]:
+                    body += f"Question: {entry['question']}\nRéponse: {entry['response']}\n\n"
+
+                intent.putExtra(Intent.EXTRA_TEXT, body)
+
+                PythonActivity = autoclass("org.kivy.android.PythonActivity")
+                currentActivity = cast("android.app.Activity", PythonActivity.mActivity)
+                currentActivity.startActivity(intent)
+
+                return True
+            except Exception as e:
+                return False
+        else:
+            return False
+
+    def show_error_popup(self, error_message):
+        self.dismiss_popup()
+        popup_layout = BoxLayout(orientation="vertical", padding=10, spacing=10)
+        message = Label(
+            text=error_message,
+            text_size=(250, None),
+            halign="center",
+            valign="middle",
+        )
+        popup_layout.add_widget(message)
+
+        buttons_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=10)
+        ok_btn = Button(text="OK", on_press=lambda x: self.dismiss_error_popup())
+
+        buttons_layout.add_widget(ok_btn)
+        popup_layout.add_widget(buttons_layout)
+
+        self.popup = Popup(title="Erreur", content=popup_layout, size_hint=(0.8, 0.4))
+        self.popup.open()
+
+    def show_success_popup(self):
+        self.dismiss_popup()
+        popup_layout = BoxLayout(orientation="vertical", padding=10, spacing=10)
+        message = Label(
+            text="L'email a été envoyé avec succès !",
+            text_size=(250, None),
+            halign="center",
+            valign="middle",
+        )
+        popup_layout.add_widget(message)
+
+        buttons_layout = BoxLayout(size_hint_y=None, height=dp(40), spacing=10)
+        ok_btn = Button(text="OK", on_press=lambda x: self.dismiss_success_popup())
+
+        buttons_layout.add_widget(ok_btn)
+        popup_layout.add_widget(buttons_layout)
+
+        self.popup = Popup(title="Succès", content=popup_layout, size_hint=(0.8, 0.4))
+        self.popup.open()
+
+    def dismiss_success_popup(self):
+        if self.popup:
+            self.popup.dismiss()
+        self.manager.current = "session_list"
+
+    def dismiss_error_popup(self):
+        if self.popup:
+            self.popup.dismiss()
+        self.manager.current = "session_list"
