@@ -261,9 +261,10 @@ class SessionListScreen(Screen):
 
                 intent.putExtra(Intent.EXTRA_TEXT, body)
 
+                chooser = Intent.createChooser(intent, "Envoyer l'email avec :")
                 PythonActivity = autoclass("org.kivy.android.PythonActivity")
                 currentActivity = cast("android.app.Activity", PythonActivity.mActivity)
-                currentActivity.startActivity(intent)
+                currentActivity.startActivity(chooser)
 
                 return True
             except Exception as e:
