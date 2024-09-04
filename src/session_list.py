@@ -249,7 +249,7 @@ class SessionListScreen(Screen):
                 Uri = autoclass("android.net.Uri")
 
                 intent = Intent(Intent.ACTION_SEND)
-                intent.setType("text/plain")
+                intent.setType("message/rfc822")
 
                 intent.putExtra(Intent.EXTRA_EMAIL, [email])
 
@@ -268,6 +268,7 @@ class SessionListScreen(Screen):
 
                 return True
             except Exception as e:
+                print(f"Error sending email: {e}")
                 return False
         else:
             return False
