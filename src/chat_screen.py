@@ -7,18 +7,33 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.storage.jsonstore import JsonStore
 from kivy.app import App
+from kivy.core.window import Window
 import os
-import subprocess
-
+from llama_cpp import Llama
+import requests
+from kivy.uix.popup import Popup
+import json
 
 class ChatScreen(Screen):
-    def __init__(self, session_manager, **kwargs):
+    def __init__(self, session_manager, model_name, model_filename,**kwargs):
         super(ChatScreen, self).__init__(**kwargs)
-        self.install_llama_in_termux()
-        self.copy_script_to_termux()
+        self.model_name = model_name
+        self.model_filename = model_filename
+        self.model_dir = "./models/" + model_name
+        self.model_path = os.path.join(self.model_dir, model_filename)
+        self.model_url = "https://huggingface.co/innermost47/cbt-french-model/resolve/main/unsloth.Q4_K_M.gguf?download=true"
+        self.download_model_if_not_present()
+        self.llm = Llama(
+            model_path=self.model_path, 
+            n_ctx=2048
+        )
         self.session_manager = session_manager
+
         self.layout = BoxLayout(orientation="vertical")
         self.add_widget(self.layout)
+
+        self.clear_button = Button(text="Effacer l'historique", size_hint=(1, 0.1), on_press=self.show_confirmation_popup)
+        self.layout.add_widget(self.clear_button)
 
         self.scroll_view = ScrollView(size_hint=(1, 0.8))
         self.chat_log = GridLayout(cols=1, spacing=10, size_hint_y=None)
@@ -40,58 +55,27 @@ class ChatScreen(Screen):
         self.input_layout.add_widget(send_button)
         self.layout.add_widget(self.input_layout)
         self.layout.add_widget(back_button)
-
+  
         self.chat_store = JsonStore(
-            os.path.join(App.get_running_app().user_data_dir, "chat_history.json")
+            os.path.join(App.get_running_app().user_data_dir, "memory.json")
         )
+        self.chat_history = [] 
+        self.max_history = 6
         self.load_chat_history()
 
-    def llama_installed(self):
-        llama_binary = "/data/data/com.termux/files/home/llama.cpp/main"
-        model_file = "/data/data/com.termux/files/home/llama.cpp/models/GGUF/model.gguf"
-        return os.path.exists(llama_binary) and os.path.exists(model_file)
-
-    def install_llama_in_termux(self):
-        if not self.llama_installed():
-            try:
-                script_src = os.path.join(
-                    App.get_running_app().user_data_dir,
-                    "assets",
-                    "scripts",
-                    "install_llama.sh",
-                )
-                execute_command = f"termux-open --send sh {script_src}"
-                subprocess.run(execute_command, shell=True)
-                print("Installing llama.cpp in Termux...")
-            except Exception as e:
-                print(f"Error installing llama.cpp in Termux: {e}")
-
-    def script_copied(self):
-        file = "/data/data/com.termux/files/home/run_llama.sh"
-        return os.path.exists(file)
-
-    def copy_script_to_termux(self):
-        if not self.script_copied():
-            try:
-                script_src = os.path.join(
-                    App.get_running_app().user_data_dir,
-                    "assets",
-                    "scripts",
-                    "run_llama.sh",
-                )
-
-                termux_dest = "/data/data/com.termux/files/home/run_llama.sh"
-
-                copy_command = f"cp {script_src} {termux_dest}"
-                subprocess.run(["termux-open", "--send", copy_command], shell=True)
-
-                chmod_command = f"chmod +x {termux_dest}"
-                subprocess.run(["termux-open", "--send", chmod_command], shell=True)
-
-                print("Script copied and made executable in Termux.")
-
-            except Exception as e:
-                print(f"Error copying script to Termux: {e}")
+    def download_model_if_not_present(self):
+        if not os.path.exists(self.model_path):
+            print(f"Downloading model from {self.model_url} into {self.model_dir}...")
+            os.makedirs(self.model_dir, exist_ok=True) 
+            response = requests.get(self.model_url)
+            if response.status_code == 200:
+                with open(self.model_path, "wb") as f:
+                    f.write(response.content)
+                print(f"Model downloaded successfully and saved as {self.model_path}")
+            else:
+                raise Exception(f"Download failed with status {response.status_code}")
+        else:
+            print(f"The model is already present locally under {self.model_path}")
 
     def go_back(self, instance):
         self.manager.current = "menu"
@@ -100,6 +84,7 @@ class ChatScreen(Screen):
         user_message = self.message_input.text
         if user_message.strip():
             self.add_message_to_chat("Vous", user_message)
+            self.message_input.text = ""
 
             bot_response = self.bot_response(user_message)
             self.add_message_to_chat("Bot", bot_response)
@@ -107,49 +92,86 @@ class ChatScreen(Screen):
             self.save_message_to_history("Vous", user_message)
             self.save_message_to_history("Bot", bot_response)
 
-            self.message_input.text = ""
-
+            
     def add_message_to_chat(self, sender, message):
-        message_label = Label(text=f"[{sender}] {message}", size_hint_y=None, height=40)
+        label_width = Window.width * 0.9
+        message_label = Label(
+            text=f"[{sender}] {message}",
+            size_hint_y=None,
+            height=40,
+            text_size=(label_width, None),  
+            halign="left",  
+            valign="middle"
+        )
+
+        message_label.bind(
+            texture_size=lambda *x: setattr(message_label, 'height', message_label.texture_size[1] + 10)
+        )
+
         self.chat_log.add_widget(message_label)
         self.scroll_view.scroll_to(message_label)
 
     def bot_response(self, user_message):
         try:
-            execute_command = (
-                f'sh /data/data/com.termux/files/home/run_llama.sh "{user_message}"'
+            history_to_send = self.chat_history[-self.max_history:]
+            messages_for_model = [{"role": "system", "content": ""}]
+            for msg in history_to_send:
+                role = "user" if msg["sender"] == "Vous" else "assistant"
+                messages_for_model.append({
+                    "role": role, 
+                    "content": msg["message"]
+                })
+            messages_for_model.append({"role": "user", "content": user_message})
+            
+            output = self.llm.create_chat_completion(
+                messages=messages_for_model, 
+                max_tokens=128, 
             )
-            process = subprocess.Popen(
-                ["termux-open", "--send", execute_command],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=True,
-            )
-            output, error = process.communicate()
 
-            if error:
-                return "Error while executing the model."
-            else:
-                return output.decode("utf-8").strip()
+            return output["choices"][0]["message"]["content"].strip('"')
 
         except Exception as e:
             print(f"Error in bot_response: {e}")
             return "The model could not respond."
-
+        
     def save_message_to_history(self, sender, message):
         if not self.chat_store.exists("chat"):
             self.chat_store.put("chat", messages=[])
+
         chat_history = self.chat_store.get("chat")["messages"]
         chat_history.append({"sender": sender, "message": message})
         self.chat_store.put("chat", messages=chat_history)
+        self.chat_history = chat_history
+
 
     def load_chat_history(self):
         if self.chat_store.exists("chat"):
             chat_history = self.chat_store.get("chat")["messages"]
+            self.chat_history = chat_history
             for message in chat_history:
                 self.add_message_to_chat(message["sender"], message["message"])
-
+        
     def reset_chat(self):
+        self.chat_history = []
         if self.chat_store.exists("chat"):
             self.chat_store.put("chat", messages=[])
         self.chat_log.clear_widgets()
+
+    def show_confirmation_popup(self, instance):
+        layout = BoxLayout(orientation='vertical')
+        label = Label(text="Êtes-vous sûr de vouloir effacer l'historique ?")
+
+        popup = Popup(title='Confirmation', content=layout, size_hint=(None, None), size=(400, 200))
+
+        confirm_button = Button(text="Oui", on_press=lambda x: self.clear_history(popup))
+        cancel_button = Button(text="Non", on_press=popup.dismiss)
+
+        layout.add_widget(label)
+        layout.add_widget(confirm_button)
+        layout.add_widget(cancel_button)
+        
+        popup.open()
+
+    def clear_history(self, popup):
+        self.reset_chat()
+        popup.dismiss()

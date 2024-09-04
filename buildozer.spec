@@ -13,10 +13,10 @@ package.domain = fr.cbt.app
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,ttf,sh
+source.include_exts = py,png,jpg,kv,atlas,ttf
 
 # (list) List of inclusions using pattern matching
-source.include_patterns = assets/images/*, assets/scripts/*.sh
+source.include_patterns = assets/images/*
 
 # (list) Source files to exclude (let empty to not exclude anything)
 #source.exclude_exts = spec
@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,pyjnius
+requirements = python3, kivy, cython, python-for-android, pyjnius, llama-cpp-python, requests
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes

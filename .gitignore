@@ -4,3 +4,4 @@ bin
 .buildozer
 .kivy
 src/__pycache__
+models

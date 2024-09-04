@@ -2,3 +2,5 @@ kivy
 cython
 python-for-android
 pyjnius
+llama-cpp-python
+requests
