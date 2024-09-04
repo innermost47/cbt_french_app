@@ -249,7 +249,7 @@ class SessionListScreen(Screen):
                 Uri = autoclass("android.net.Uri")
 
                 intent = Intent(Intent.ACTION_SEND)
-                intent.setType("message/rfc822")
+                intent.setType("text/plain")
 
                 intent.putExtra(Intent.EXTRA_EMAIL, [email])
 
