@@ -9,6 +9,7 @@ from src import (
     SessionListScreen,
     ContactListScreen,
     ContactManager,
+    ChatScreen,
 )
 
 
@@ -21,6 +22,7 @@ class TCCApp(App):
             sm.add_widget(MenuScreen(session_manager, name="menu"))
             sm.add_widget(TitleSessionScreen(session_manager, name="title_session"))
             sm.add_widget(NewSessionScreen(session_manager, name="new_session"))
+            sm.add_widget(ChatScreen(session_manager, name="chat_screen"))
             sm.add_widget(
                 SessionListScreen(session_manager, contact_manager, name="session_list")
             )
