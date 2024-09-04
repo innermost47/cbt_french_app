@@ -8,8 +8,8 @@ cd llama.cpp
 
 make
 
-mkdir -p models/7B
+mkdir -p models/GGUF
 
-wget https://huggingface.co/TheBloke/StableBeluga-7B-GGUF/resolve/main/stablebeluga-7b.Q4_K_M.gguf -P models/7B/
+wget -o model.gguf https://huggingface.co/innermost47/cbt-french-model/resolve/main/unsloth.Q4_K_M.gguf?download=true -P models/GGUF/
 
 chmod +x ./main

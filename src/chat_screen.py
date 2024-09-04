@@ -48,7 +48,7 @@ class ChatScreen(Screen):
 
     def llama_installed(self):
         llama_binary = "/data/data/com.termux/files/home/llama.cpp/main"
-        model_file = "/data/data/com.termux/files/home/llama.cpp/models/7B/stablebeluga-7b.Q4_K_M.gguf"
+        model_file = "/data/data/com.termux/files/home/llama.cpp/models/GGUF/model.gguf"
         return os.path.exists(llama_binary) and os.path.exists(model_file)
 
     def install_llama_in_termux(self):
