@@ -83,13 +83,27 @@ class SessionDetailScreen(Screen):
             grid_layout.add_widget(question_label)
             grid_layout.add_widget(response_label)
 
+        if "distortions" in session and session["distortions"]:
+            distortions_label = Label(
+                text=f"[b]Distorsions sélectionnées:[/b] {', '.join(session['distortions'])}",
+                markup=True,
+                size_hint_y=None,
+                halign="left",
+                valign="top",
+                text_size=(self.width - 20, None),
+            )
+            distortions_label.bind(
+                size=lambda lbl, _: lbl.setter("text_size")(lbl, (lbl.width, None))
+            )
+            distortions_label.texture_update()
+            distortions_label.height = distortions_label.texture_size[1]
+            grid_layout.add_widget(distortions_label)
+
         scroll_view.add_widget(grid_layout)
 
         self.layout.add_widget(scroll_view)
 
-        back_button = Button(
-            text="Retour", on_press=self.go_back, size_hint=(1, 0.1)
-        )
+        back_button = Button(text="Retour", on_press=self.go_back, size_hint=(1, 0.1))
         self.layout.add_widget(back_button)
 
         grid_layout.height = grid_layout.minimum_height

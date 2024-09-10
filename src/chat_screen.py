@@ -9,30 +9,22 @@ from kivy.storage.jsonstore import JsonStore
 from kivy.app import App
 from kivy.core.window import Window
 import os
-from llama_cpp import Llama
-import requests
 from kivy.uix.popup import Popup
-import json
+
 
 class ChatScreen(Screen):
-    def __init__(self, session_manager, model_name, model_filename,**kwargs):
+    def __init__(self, session_manager, **kwargs):
         super(ChatScreen, self).__init__(**kwargs)
-        self.model_name = model_name
-        self.model_filename = model_filename
-        self.model_dir = "./models/" + model_name
-        self.model_path = os.path.join(self.model_dir, model_filename)
-        self.model_url = "https://huggingface.co/innermost47/cbt-french-model/resolve/main/unsloth.Q4_K_M.gguf?download=true"
-        self.download_model_if_not_present()
-        self.llm = Llama(
-            model_path=self.model_path, 
-            n_ctx=2048
-        )
         self.session_manager = session_manager
 
         self.layout = BoxLayout(orientation="vertical")
         self.add_widget(self.layout)
 
-        self.clear_button = Button(text="Effacer l'historique", size_hint=(1, 0.1), on_press=self.show_confirmation_popup)
+        self.clear_button = Button(
+            text="Effacer l'historique",
+            size_hint=(1, 0.1),
+            on_press=self.show_confirmation_popup,
+        )
         self.layout.add_widget(self.clear_button)
 
         self.scroll_view = ScrollView(size_hint=(1, 0.8))
@@ -55,27 +47,13 @@ class ChatScreen(Screen):
         self.input_layout.add_widget(send_button)
         self.layout.add_widget(self.input_layout)
         self.layout.add_widget(back_button)
-  
+
         self.chat_store = JsonStore(
             os.path.join(App.get_running_app().user_data_dir, "memory.json")
         )
-        self.chat_history = [] 
+        self.chat_history = []
         self.max_history = 6
         self.load_chat_history()
-
-    def download_model_if_not_present(self):
-        if not os.path.exists(self.model_path):
-            print(f"Downloading model from {self.model_url} into {self.model_dir}...")
-            os.makedirs(self.model_dir, exist_ok=True) 
-            response = requests.get(self.model_url)
-            if response.status_code == 200:
-                with open(self.model_path, "wb") as f:
-                    f.write(response.content)
-                print(f"Model downloaded successfully and saved as {self.model_path}")
-            else:
-                raise Exception(f"Download failed with status {response.status_code}")
-        else:
-            print(f"The model is already present locally under {self.model_path}")
 
     def go_back(self, instance):
         self.manager.current = "menu"
@@ -92,48 +70,29 @@ class ChatScreen(Screen):
             self.save_message_to_history("Vous", user_message)
             self.save_message_to_history("Bot", bot_response)
 
-            
     def add_message_to_chat(self, sender, message):
         label_width = Window.width * 0.9
         message_label = Label(
             text=f"[{sender}] {message}",
             size_hint_y=None,
             height=40,
-            text_size=(label_width, None),  
-            halign="left",  
-            valign="middle"
+            text_size=(label_width, None),
+            halign="left",
+            valign="middle",
         )
 
         message_label.bind(
-            texture_size=lambda *x: setattr(message_label, 'height', message_label.texture_size[1] + 10)
+            texture_size=lambda *x: setattr(
+                message_label, "height", message_label.texture_size[1] + 10
+            )
         )
 
         self.chat_log.add_widget(message_label)
         self.scroll_view.scroll_to(message_label)
 
     def bot_response(self, user_message):
-        try:
-            history_to_send = self.chat_history[-self.max_history:]
-            messages_for_model = [{"role": "system", "content": ""}]
-            for msg in history_to_send:
-                role = "user" if msg["sender"] == "Vous" else "assistant"
-                messages_for_model.append({
-                    "role": role, 
-                    "content": msg["message"]
-                })
-            messages_for_model.append({"role": "user", "content": user_message})
-            
-            output = self.llm.create_chat_completion(
-                messages=messages_for_model, 
-                max_tokens=128, 
-            )
+        raise NotImplementedError("This method is not yet implemented.")
 
-            return output["choices"][0]["message"]["content"].strip('"')
-
-        except Exception as e:
-            print(f"Error in bot_response: {e}")
-            return "The model could not respond."
-        
     def save_message_to_history(self, sender, message):
         if not self.chat_store.exists("chat"):
             self.chat_store.put("chat", messages=[])
@@ -143,14 +102,13 @@ class ChatScreen(Screen):
         self.chat_store.put("chat", messages=chat_history)
         self.chat_history = chat_history
 
-
     def load_chat_history(self):
         if self.chat_store.exists("chat"):
             chat_history = self.chat_store.get("chat")["messages"]
             self.chat_history = chat_history
             for message in chat_history:
                 self.add_message_to_chat(message["sender"], message["message"])
-        
+
     def reset_chat(self):
         self.chat_history = []
         if self.chat_store.exists("chat"):
@@ -158,18 +116,25 @@ class ChatScreen(Screen):
         self.chat_log.clear_widgets()
 
     def show_confirmation_popup(self, instance):
-        layout = BoxLayout(orientation='vertical')
+        layout = BoxLayout(orientation="vertical")
         label = Label(text="Êtes-vous sûr de vouloir effacer l'historique ?")
 
-        popup = Popup(title='Confirmation', content=layout, size_hint=(None, None), size=(400, 200))
+        popup = Popup(
+            title="Confirmation",
+            content=layout,
+            size_hint=(None, None),
+            size=(400, 200),
+        )
 
-        confirm_button = Button(text="Oui", on_press=lambda x: self.clear_history(popup))
+        confirm_button = Button(
+            text="Oui", on_press=lambda x: self.clear_history(popup)
+        )
         cancel_button = Button(text="Non", on_press=popup.dismiss)
 
         layout.add_widget(label)
         layout.add_widget(confirm_button)
         layout.add_widget(cancel_button)
-        
+
         popup.open()
 
     def clear_history(self, popup):

@@ -94,19 +94,28 @@ class SessionListScreen(Screen):
 
     def show_session_details(self, session):
         try:
-            self.manager.get_screen("session_detail").show_session(session)
-            self.manager.current = "session_detail"
+            if self.manager:
+                self.manager.get_screen("session_detail").show_session(session)
+                self.manager.current = "session_detail"
+            else:
+                print("Error: ScreenManager not found.")
         except KeyError as e:
             print(f"Error: Screen not found - {e}")
 
     def go_back(self, instance):
-        self.manager.current = "menu"
+        if self.manager:
+            self.manager.current = "menu"
+        else:
+            print("Error: ScreenManager not found.")
 
     def edit_session(self, session):
         try:
-            new_session_screen = self.manager.get_screen("new_session")
-            new_session_screen.load_session(session)
-            self.manager.current = "new_session"
+            if self.manager:
+                new_session_screen = self.manager.get_screen("new_session")
+                new_session_screen.load_session(session)
+                self.manager.current = "new_session"
+            else:
+                print("Error: ScreenManager not found.")
         except KeyError as e:
             print(f"Error: Screen not found - {e}")
 
@@ -315,9 +324,15 @@ class SessionListScreen(Screen):
     def dismiss_success_popup(self):
         if self.popup:
             self.popup.dismiss()
-        self.manager.current = "session_list"
+        if self.manager:
+            self.manager.current = "session_list"
+        else:
+            print("Error: ScreenManager not found.")
 
     def dismiss_error_popup(self):
         if self.popup:
             self.popup.dismiss()
-        self.manager.current = "session_list"
+        if self.manager:
+            self.manager.current = "session_list"
+        else:
+            print("Error: ScreenManager not found.")

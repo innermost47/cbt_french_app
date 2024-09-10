@@ -10,6 +10,7 @@ from src import (
     ContactListScreen,
     ContactManager,
     ChatScreen,
+    DistortionsScreen,
 )
 
 
@@ -22,12 +23,13 @@ class TCCApp(App):
             sm.add_widget(MenuScreen(session_manager, name="menu"))
             sm.add_widget(TitleSessionScreen(session_manager, name="title_session"))
             sm.add_widget(NewSessionScreen(session_manager, name="new_session"))
-            sm.add_widget(ChatScreen(session_manager, model_name="cbt-french-model", model_filename="unsloth.Q4_K_M.gguf", name="chat_screen"))
+            sm.add_widget(ChatScreen(session_manager, name="chat_screen"))
             sm.add_widget(
                 SessionListScreen(session_manager, contact_manager, name="session_list")
             )
             sm.add_widget(ContactListScreen(contact_manager, name="contact_list"))
             sm.add_widget(SessionDetailScreen(name="session_detail"))
+            sm.add_widget(DistortionsScreen(name="distortions_screen"))
             return sm
         except Exception as e:
             print(f"An error occurred while creating the application: {e}")

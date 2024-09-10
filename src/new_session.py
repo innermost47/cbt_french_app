@@ -31,7 +31,7 @@ class NewSessionScreen(Screen):
             "Quels moyens pourriez-vous utiliser pour vous adapter à cette situation ? Comment feriez-vous face aux défis qu'elle présente ?",
         ]
         self.entries = [{}] * len(self.questions)
-
+        self.selected_distortions = []
         self.layout = BoxLayout(orientation="vertical")
         self.title = ""
 
@@ -73,6 +73,7 @@ class NewSessionScreen(Screen):
             self.title = title
             self.current_question = 0
             self.entries = [{}] * len(self.questions)
+            self.selected_distortions = []
             self.response_input.text = ""
             self.update_ui()
         except Exception as e:
@@ -92,9 +93,9 @@ class NewSessionScreen(Screen):
                 self.current_question += 1
                 self.update_ui()
             else:
-                self.save_session()
+                self.manager.current = "distortions_screen"
         except Exception as e:
-            print(f"An error occured while trying to navigate to next question: {e}")
+            print(f"An error occurred while trying to navigate to next question: {e}")
 
     def prev_question(self, instance):
         try:
@@ -115,7 +116,7 @@ class NewSessionScreen(Screen):
                 "response": response,
             }
         except Exception as e:
-            print(f"An error occured while trying to save current response: {e}")
+            print(f"An error occurred while trying to save current response: {e}")
 
     def save_session(self):
         try:
@@ -126,10 +127,13 @@ class NewSessionScreen(Screen):
                 if session["title"] == self.title:
                     session["date"] = date
                     session["entries"] = valid_entries
+                    session["distortions"] = self.selected_distortions
                     session_exists = True
                     break
             if not session_exists:
-                self.session_manager.add_session(self.title, date, valid_entries)
+                self.session_manager.add_session(
+                    self.title, date, valid_entries, self.selected_distortions
+                )
             self.session_manager.save_sessions()
             session_list_screen = self.manager.get_screen("session_list")
             session_list_screen.update_sessions_list()
@@ -147,7 +151,7 @@ class NewSessionScreen(Screen):
                     if entry["question"] == question:
                         self.entries[i] = entry
                         break
-
+            self.selected_distortions = session.get("distortions", [])
             self.update_ui()
         except Exception as e:
             print(f"Error loading session: {e}")

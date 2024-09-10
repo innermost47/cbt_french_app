@@ -20,10 +20,16 @@ class SessionManager:
     def save_sessions(self):
         self.store.put("sessions", sessions=self.sessions)
 
-    def add_session(self, title, date, entries):
+    def add_session(self, title, date, entries, distorsions):
         session_id = str(uuid.uuid4())
         self.sessions.append(
-            {"id": session_id, "title": title, "date": date, "entries": entries}
+            {
+                "id": session_id,
+                "title": title,
+                "date": date,
+                "entries": entries,
+                "distortions": distorsions,
+            }
         )
         self.save_sessions()
 
