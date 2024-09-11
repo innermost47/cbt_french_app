@@ -38,7 +38,7 @@ class DistortionsScreen(Screen):
                 "Tirer des conclusions négatives sans preuves. Cela inclut la lecture des pensées d'autrui et les prédictions pessimistes.",
             ),
             (
-                "Exagération (dramatisation) et minimalisation",
+                "Exagération et minimalisation",
                 "Exagérer ses erreurs ou minimiser ses réussites.",
             ),
             (
